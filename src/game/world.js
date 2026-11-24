@@ -89,13 +89,44 @@ function buildPearl() {
   dhow.position.set(-7.6, 0, 3.5); dhow.rotation.y = 0.6; g.add(dhow);
   Object.assign(g.userData, { pearl, lid: lidPiv, glow, dhow }); return g;
 }
+// Zizoun's Hat Town, after the book's cover: a shop wearing a giant purple hat with a feather,
+// purple swirly mushroom trees, green cactus blobs and festive bunting.
+function swirlTree(h = 2.6, s = 1) {
+  const g = new THREE.Group();
+  const trunk = mesh(new THREE.CylinderGeometry(0.22, 0.42, h, 7), M('#d9c2dd')); trunk.position.y = h / 2; trunk.rotation.z = 0.12; g.add(trunk);
+  for (let i = 0; i < 3; i++) { const r = mesh(new THREE.TorusGeometry(0.28, 0.06, 5, 10), M('#9b6fa6')); r.position.set(0.05, 0.6 + i * 0.6, 0.3); r.rotation.y = 0.3; g.add(r); }
+  const cap = mesh(new THREE.SphereGeometry(1.25, 10, 7, 0, Math.PI * 2, 0, Math.PI / 1.9), M('#b4527a')); cap.scale.y = 0.75; cap.position.y = h; g.add(cap);
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; const d = mesh(new THREE.TorusGeometry(0.2, 0.05, 4, 8), M('#e6a7c4')); d.position.set(Math.cos(a) * 0.9, h + 0.35, Math.sin(a) * 0.9); d.lookAt(0, h + 3, 0); g.add(d); }
+  g.scale.setScalar(s); return g;
+}
+function cactusBlob(s = 1) {
+  const g = new THREE.Group(); [[0, 0.5, 0, 0.55, 1], [0.45, 0.35, 0.1, 0.38, 0.8], [-0.4, 0.3, -0.1, 0.34, 0.7]].forEach(([x, y, z, r, k]) => { const b = mesh(new THREE.CapsuleGeometry(r, r * 1.4 * k, 3, 8), M(k > 0.9 ? '#7fbf4d' : '#9ad06a')); b.position.set(x, y + r, z); g.add(b); });
+  g.scale.setScalar(s); return g;
+}
 function buildHat() {
-  const g = baseIsland(7, '#ffd98a', '#f7c873'); const cols = ['#e8622c', '#7b4fd6', '#1a8fe0', '#F7B500', '#2fae63'];
-  for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2 + 0.3, r = 3.6; const st = new THREE.Group(); const box = mesh(new THREE.BoxGeometry(1.6, 1.1, 1.2), M('#f4e6cc')); box.position.y = 1.55; const roof = mesh(new THREE.BoxGeometry(1.9, 0.2, 1.6), M(cols[i])); roof.position.y = 2.3; roof.rotation.x = 0.15; st.add(box, roof); st.position.set(Math.cos(a) * r, 0, Math.sin(a) * r); st.rotation.y = -a + Math.PI / 2; g.add(st); }
-  const brim = mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.18, 14), M('#7b4fd6')); brim.position.y = 3.6;
-  const crown = mesh(new THREE.CylinderGeometry(1, 1.1, 1.6, 12), M('#7b4fd6')); crown.position.y = 4.4;
-  const band = mesh(new THREE.CylinderGeometry(1.12, 1.12, 0.3, 12), M('#F7B500')); band.position.y = 3.85;
-  g.add(brim, crown, band); return g;
+  const g = baseIsland(7, '#f6dcb0', '#c9df8f');
+  // the shop: a round, warm-orange house…
+  const house = mesh(new THREE.CylinderGeometry(1.9, 2.2, 2.6, 12), M('#f0a25a')); house.position.set(0, 2.2, -0.6); g.add(house);
+  const sign = mesh(new THREE.BoxGeometry(1.7, 0.45, 0.12), M('#9c4f2c')); sign.position.set(-0.3, 2.9, 1.42); sign.rotation.z = 0.08; g.add(sign);
+  const win = mesh(new THREE.BoxGeometry(0.75, 0.75, 0.1), M('#3a2a2a')); win.position.set(-0.6, 1.95, 1.5); g.add(win);
+  const glow = mesh(new THREE.BoxGeometry(0.6, 0.6, 0.12), new THREE.MeshBasicMaterial({ color: '#ffd66e' })); glow.position.set(-0.6, 1.95, 1.52); g.add(glow);
+  const door = mesh(new THREE.BoxGeometry(0.55, 1.2, 0.1), M('#c2412f')); door.position.set(0.55, 1.5, 1.5); g.add(door);
+  // …wearing a giant, wavy purple hat with a cream feather
+  const brim = mesh(new THREE.TorusGeometry(2.25, 0.42, 7, 18), M('#5a2a4f')); brim.rotation.x = Math.PI / 2; brim.scale.z = 0.55; brim.position.set(0, 3.55, -0.6); g.add(brim);
+  const prof = []; for (let i = 0; i <= 10; i++) prof.push(new THREE.Vector2(1.75 - i * 0.09 + Math.sin(i * 1.3) * 0.08, i * 0.38));
+  const crown = mesh(new THREE.LatheGeometry(prof, 14), M('#7a3a6b', { side: THREE.DoubleSide })); crown.position.set(0, 3.6, -0.6); crown.rotation.z = -0.08; g.add(crown);
+  const lid = mesh(new THREE.CircleGeometry(0.85, 14), M('#7a3a6b')); lid.rotation.x = -Math.PI / 2; lid.position.set(0.3, 7.4, -0.6); g.add(lid);
+  const chimney = mesh(new THREE.BoxGeometry(0.45, 1.2, 0.45), M('#d98a4a')); chimney.position.set(0.9, 6.9, -0.2); g.add(chimney);
+  const feather = new THREE.Group(); const f = mesh(new THREE.ConeGeometry(0.5, 3.6, 8), M('#f3dca0')); f.scale.z = 0.22; f.position.y = 1.8; feather.add(f);
+  feather.position.set(-1.4, 4.4, -0.2); feather.rotation.set(0.1, 0.3, 0.55); g.add(feather);
+  // purple swirly trees and cactus blobs around it
+  [[-4.6, 0.5, 1.6, 1], [4.4, 0.5, 1.4, 0.9], [3.6, 0.5, -3.6, 1.1], [-3.8, 0.5, -3.2, 0.85]].forEach(([x, y, z, k]) => { const t = swirlTree(2.6, k); t.position.set(x, y, z); t.rotation.y = x; g.add(t); });
+  [[-2.4, 0.9, 3.6, 0.8], [2.6, 0.9, 3.4, 0.7], [5.2, 0.6, -0.8, 0.6]].forEach(([x, y, z, k]) => { const c = cactusBlob(k); c.position.set(x, y, z); g.add(c); });
+  // bunting between the two front trees
+  const cols = ['#e98bb5', '#a7d7e8', '#f2c14e', '#e8504f', '#9ad1c6'];
+  for (let i = 0; i < 9; i++) { const u = i / 8; const fl = mesh(new THREE.ConeGeometry(0.22, 0.45, 3), M(cols[i % 5]), { cast: false }); fl.rotation.x = Math.PI; fl.position.set(lerp(-4.2, 4.1, u), 3.3 - Math.sin(u * Math.PI) * 0.7, lerp(1.9, 1.7, u) + 0.4); g.add(fl); }
+  g.userData.feather = feather; g.userData.glow = glow;
+  return g;
 }
 function buildSahl() {
   const g = baseIsland(7.4, '#f6d48f', '#a6d96a');
@@ -195,7 +226,6 @@ export class World {
     const P = this.portrait(), k = P ? 1.55 : 1, m = this.mode, wide = innerWidth >= 1100, sg = document.documentElement.dir === 'rtl' ? -1 : 1;
     if (m.type === 'map') { const d = P ? 80 : 60, ht = P ? 72 : 46; this.goal.pos.set(Math.sin(this.yaw) * d + (wide ? 8 * sg : 0), ht, Math.cos(this.yaw) * d); this.goal.look.set(wide ? 8 * sg : 0, 0, P ? 5 : 3); }
     else if (m.type === 'focus') { const p = (this.islands[m.id] || this.home).position; const off = wide ? 9 * sg : 0; this.goal.pos.set(p.x + off, 25 * k, p.z + 31 * k); this.goal.look.set(p.x + off, 0, p.z + (P ? 12 : 9)); }
-    else if (m.type === 'pearl') { const p = this.P.position; const off = wide ? 3 * sg : 0; this.goal.pos.set(p.x + (P ? 1.5 : 3) + off, 4.6 * k, p.z + 8.5 * k); this.goal.look.set(p.x + off, 0.4, p.z + (P ? 4.2 : 3.2)); }
   }
   frame(now) {
     const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; if (this.paused) return; this.T += dt; const T = this.T;
@@ -206,7 +236,8 @@ export class World {
     this.ibis.userData.wings.forEach((w, i) => { w.rotation.z = (i ? 1 : -1) * Math.sin(T * 8) * 0.6; });
     this.home.userData.flag.rotation.y = Math.sin(T * 3) * 0.25;
     for (const g of Object.values(this.islands)) if (g.userData.mist.visible) g.userData.mist.rotation.y += dt * 0.15;
-    if (this.P) { const pr = this.P.userData.pearl; if (!pr.userData.free) { pr.position.y = 1.05 + Math.sin(T * 2) * 0.05; pr.rotation.y = Math.sin(T * 0.8) * 0.4; } this.P.userData.dhow.position.y = Math.sin(T * 1.6) * 0.1; this.P.userData.dhow.rotation.z = Math.sin(T * 1.2) * 0.05; }
+    if (this.P) { const pr = this.P.userData.pearl; pr.position.y = 1.05 + Math.sin(T * 2) * 0.05; pr.rotation.y = Math.sin(T * 0.8) * 0.4; this.P.userData.dhow.position.y = Math.sin(T * 1.6) * 0.1; this.P.userData.dhow.rotation.z = Math.sin(T * 1.2) * 0.05; }
+    const H = this.islands.hat; if (H?.userData.feather) { H.userData.feather.rotation.z = 0.55 + Math.sin(T * 1.4) * 0.08; }
     this.computeGoal();
     if (this.cine) { this.cam.pos.copy(this.cine.pos); this.cam.look.copy(this.cine.look); }
     else { const k = 1 - Math.exp(-dt * (reduceMotion() ? 20 : 2.6)); this.cam.pos.lerp(this.goal.pos, k); this.cam.look.lerp(this.goal.look, k); }
@@ -228,7 +259,7 @@ export class World {
     mist.visible = false; mist.scale.setScalar(1); mist.children.forEach(c => { c.material.opacity = 0.82; });
     await this.tween(0.6, p => g.scale.setScalar(1 + Math.sin(p * Math.PI) * 0.12));
   }
-  rel(x, y, z, base = this.P.position) { return [base.x + x, base.y + y, base.z + z]; }
+  rel(x, y, z, base) { return [base.x + x, base.y + y, base.z + z]; }
   /** shots: [{to, look, from?, fromLook?, dur, start?, update?, end?, final?, cap?}] ; ctl.skipped flag lets UI skip */
   async playCine(shots, ctl, onShot) {
     const v3 = a => (Array.isArray(a) ? new THREE.Vector3(...a) : a.clone());
@@ -245,10 +276,5 @@ export class World {
     if (ctl.skipped) shots.forEach(s => s.final?.());
     this.cam.pos.copy(this.cine.pos); this.cam.look.copy(this.cine.look); this.cine = null;
   }
-  resetPearl() {
-    if (!this.P) return; const u = this.P.userData; const pr = u.pearl; pr.userData.free = false; pr.position.set(0, 1.05, 0); pr.scale.setScalar(0.85); pr.rotation.set(0, 0, 0);
-    u.lid.rotation.x = -0.25; u.glow.intensity = 0; this.scene.background = this.SKY; this.hemi.color.set('#d4f4ff'); this.sun.color.set('#fff4d6');
-  }
-  goldenSky() { this.scene.background = this.GOLD; this.hemi.color.set('#ffe6c4'); this.sun.color.set('#ffd29a'); }
   dispose() { this.alive = false; cancelAnimationFrame(this.raf); removeEventListener('resize', this._resize); this.renderer.dispose(); }
 }

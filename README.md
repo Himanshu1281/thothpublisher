@@ -12,7 +12,16 @@ Production: `npm run build && NODE_ENV=production PORT=8080 JWT_SECRET=... npm s
 ## Test accounts (local development only, created by `server/seed.js`)
 - Publisher admin: `admin@thoth.test` / `Publisher#2026`  → `/publisher`
 - Demo parent: `parent@thoth.test` / `Parent#2026`  → `/`
-- Demo book codes: `PEARL-DEMO`, `STORK-DEMO`, … (reusable). Real codes are generated per book in the admin panel and bind to one child.
+- Demo book code: `HAT-DEMO` (reusable; Pearl Sea is locked). Real codes are generated per book in the admin panel and bind to one child.
+
+## Zizoun's Hat Town (the playable world)
+Based on the book *صانع القبعات / The Hat Maker* (Faten Abu Al-Laban, illustrated by Latifa Ahmed). Pearl Sea is locked (`locked: true`); its code is in `legacy/pearl-world/`, outside the bundle.
+- One connected 3D town (`src/game/hat/town3d.js`): the shop, Zizoun's living room, Said's studio, the strawberry patch, frog pond, swan lake, corn field and ostrich dunes. The camera travels between places; the shop windows light up as the week goes on.
+- 3D characters modelled from the book's art (`chars3d.js`): Said, Zizoun, Mr. Frog, Mazyoun, Miss Strawberry, Mrs. Zakiyya, Hashoura. Icons are drawn SVG (`src/components/Art.jsx`), no emoji.
+- 7 days = 7 quests (`Day1.jsx` … `Day7.jsx`), each saved as one run (`world: 'hat', quest: 1–7`). Arabic text with tashkeel from the book; English alongside.
+- Book pages in `public/hat/pages` are only used as the "scan this page" reference.
+- Data checks: `server/validate.js` (every run and progress write), migrations in `server/seed.js` (`meta.schema`). With MongoDB, runs are stored one document per run in their own `runs` collection.
+- Demo code: `HAT-DEMO`.
 
 ## Structure
 - `server/` – Express API, JWT auth (bcrypt), JSON-file DB at `server/data/db.json` (swap `db.js` for Postgres/Mongo later)

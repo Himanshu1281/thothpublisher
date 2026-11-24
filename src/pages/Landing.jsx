@@ -4,6 +4,7 @@ import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { LangToggle, ZrythMark } from '../components/Brand';
 import { Icon } from '../components/ui';
+import { Art } from '../components/Art';
 
 export function AuthForm({ role }) {
   const { t } = useI18n();
@@ -53,9 +54,9 @@ export default function Landing() {
           <h1>{t('appName')}</h1>
           <p style={{ fontSize: 19, fontWeight: 800 }}>{t('tagline')}</p>
           <div className="feature-row">
-            <div className="feature"><b>📚</b>{t('scanBook')}</div>
-            <div className="feature"><b>🎤</b>{t('readAloud')}</div>
-            <div className="feature"><b>🌊</b>{t('dive')}</div>
+            <div className="feature"><b><Art n="book" size={30} /></b>{t('scanBook')}</div>
+            <div className="feature"><b><Art n="mic" size={30} /></b>{t('readAloud')}</div>
+            <div className="feature"><b><Art n="hat" size={30} /></b>{t('designHats')}</div>
           </div>
         </div>
         <AuthForm role="parent" />

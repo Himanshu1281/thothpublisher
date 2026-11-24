@@ -6,13 +6,15 @@ import { api } from '../lib/api';
 import { ac, sfx, stopSong } from '../lib/audio';
 import { hush, say, speechState } from '../lib/speech';
 import { World } from '../game/world';
-import Quest, { cleanupQuest } from '../game/Quest';
+import HatQuest from '../game/hat/HatQuest';
+import { EndingStory } from '../game/hat/Day7';
 import Space from '../game/Space';
 import { ScanFrame } from '../game/Scanner';
-import { qrSvg } from '../game/content';
+import { qrSvg } from '../game/qr';
 import { CloseX, FxLayer, Icon, Loader, Modal, Sheet, Stars, confetti, toast } from '../components/ui';
 import { LangToggle, ThothAvatar, ZrythMark } from '../components/Brand';
 import { Face } from './Kids';
+import { Art } from '../components/Art';
 
 export default function Play() {
   const { child } = useAuth();
@@ -50,7 +52,12 @@ function Game({ child }) {
     return () => { w.dispose(); world.current = null; };
   }, [books]);
   useEffect(() => { if (world.current && st) world.current.setMist(st.unlocked, mode.type === 'quest'); }, [st, mode]);
-  useEffect(() => { world.current?.setMode(mode.type === 'quest' ? { type: 'pearl' } : mode.type === 'focus' ? { type: 'focus', id: mode.id } : mode.type === 'space' ? { type: 'focus', id: 'home' } : { type: 'map' }); }, [mode]);
+  useEffect(() => {
+    const w = world.current; if (!w) return;
+    // the 2.5D Hat Town scenes cover the screen: stop drawing the 3D map underneath
+    w.paused = mode.type === 'quest' || mode.type === 'ending';
+    w.setMode(mode.type === 'focus' ? { type: 'focus', id: mode.id } : mode.type === 'space' ? { type: 'focus', id: 'home' } : { type: 'map' });
+  }, [mode]);
 
   /* tell the user once when the device can't speak a language, instead of staying silent */
   useEffect(() => {
@@ -83,7 +90,7 @@ function Game({ child }) {
   /* greet */
   useEffect(() => {
     if (!st || !world.current) return;
-    const first = !st.unlocked.length && !st.quest?.pearl;
+    const first = !st.unlocked.length;
     guide(first ? t('hiIbis', { n: child.name }) : t('welcomeBack', { n: child.name }), 6000, first);
   }, [!!st, !!world.current]); // eslint-disable-line
 
@@ -99,39 +106,22 @@ function Game({ child }) {
     const prev = mode; setMode({ type: 'cine' });
     await cine(shots, { tag: L(b.name) }); setMode(prev.type === 'space' ? prev : { type: 'focus', id });
   };
-  const replayEnding = async () => {
-    const w = world.current, u = w.P.userData, rel = w.rel.bind(w), n = st.quest?.pearl?.attempts || 1;
-    setMode({ type: 'cine' });
-    await cine([
-      { cap: t('end1'), dur: 3.2, from: rel(3, 2.4, 5), fromLook: rel(0, 1, 0), to: rel(2.5, 3, 5.5), look: rel(0, 1.5, 0), update: p => { u.pearl.userData.free = true; u.lid.rotation.x = -0.25 - p * 0.85; u.glow.intensity = p * 1.2; u.pearl.position.y = 1.05 + p * 0.8; } },
-      { cap: t('end2'), dur: 3.6, to: rel(0, 7, 12), look: rel(0, 5, 0), start: () => w.goldenSky(), update: p => { u.pearl.position.y = 1.85 + p * 4.2; u.pearl.rotation.y = p * Math.PI * 2; } },
-      { cap: t('end4'), dur: 3, to: rel(0, 10, 20), look: rel(0, 4, 0) },
-    ], { tag: t('myEnding'), badge: t('endBadge', { n }) });
-    w.resetPearl(); setMode({ type: 'space' });
-  };
+  const replayEnding = () => { stopSong(); setMode({ type: 'ending' }); };
 
   const redeem = async code => {
     const r = await api(`/children/${child.id}/redeem`, { method: 'POST', body: { code } });
     setModal(null); setSt(r.state); setMode({ type: 'focus', id: r.bookId }); sfx('chime');
+    api('/children/' + child.id + '/state').then(setSt).catch(() => {});
     await world.current.revealIsland(r.bookId); confetti();
     const b = books.find(x => x.id === r.bookId); guide(t('worldOpen', { w: L(b?.name) }), 6000, true);
   };
 
-  const startQuest = () => { ac(); world.current.resetPearl(); setMode({ type: 'quest' }); };
-  const finishQuest = async (run) => {
-    const prev = st.quest?.pearl; const stars = Math.max(run.stars, prev?.stars || 0);
-    const gained = Math.max(0, run.stars - (prev?.stars || 0));
-    await api(`/children/${child.id}/runs`, { method: 'POST', body: { world: 'pearl', band: child.band, completed: true, dives: run.dives, reading: run.reading, hints: run.hints, rhythm: run.rhythm.length ? Math.round(run.rhythm.reduce((a, b) => a + b, 0) / run.rhythm.length) : null, stone: run.stone, voice: run.voice, lastChange: run.lastChange, durationSec: run.durationSec, stars: run.stars } });
-    await persist({ quest: { ...st.quest, pearl: { done: true, stars, attempts: run.dives.length } }, stars: (st.stars || 0) + gained, songs: [...new Set([...(st.songs || []), 'tryagain'])], collect: [...new Set([...(st.collect || []), 'lulua'])] });
-    if (run.reading) setLastReading(run.reading);
-  };
-  const exitQuest = async (completed, toSpace) => {
-    if (!completed && abortRef.current) {
-      const R = abortRef.current();
-      api(`/children/${child.id}/runs`, { method: 'POST', body: { world: 'pearl', band: child.band, completed: false, dives: R.dives, reading: R.reading, hints: R.hints, durationSec: Math.round((Date.now() - R.startedAt) / 1000) } }).catch(() => {});
-    }
-    cleanupQuest(world.current); abortRef.current = null; setModal(null); guide('');
-    setMode(toSpace ? { type: 'space', tab: toSpace } : { type: 'map' });
+  const startQuest = id => { if (id !== 'hat') return; ac(); setMode({ type: 'quest', id }); };
+  const exitQuest = toSpace => {
+    const R = abortRef.current?.();
+    if (R) api(`/children/${child.id}/runs`, { method: 'POST', body: R }).catch(() => {});
+    abortRef.current = null; stopSong(); hush(); setModal(null); guide('');
+    setMode(toSpace ? { type: 'space', tab: toSpace } : { type: 'focus', id: 'hat' });
   };
 
   if (!books || !st) return <><canvas ref={canvas} className="stage" /><Loader /></>;
@@ -144,18 +134,20 @@ function Game({ child }) {
       <canvas ref={canvas} className="stage" aria-label="Story worlds map" />
       <div className="labels" style={{ visibility: showLabels ? 'visible' : 'hidden' }}>
         {world.current && books.map(b => {
-          const open = st.unlocked.includes(b.id); const q = st.quest?.[b.id];
-          const isNext = b.id === 'chick' && st.quest?.pearl?.done;
-          return <button key={b.id} ref={el => world.current?.addLabel(b.id, el, b.id === 'chick' ? 5 : 6.5)}
-            className={'ilabel' + (open ? ' open' : '') + ((!open && b.playable && !st.unlocked.length) || isNext ? ' pulse' : '')} onClick={() => openWorld(b.id)}>
+          const open = st.unlocked.includes(b.id); const live = b.playable && !b.locked;
+          const hd = b.id === 'hat' ? st.quest?.hat?.done?.length || 0 : 0;
+          return <button key={b.id} ref={el => world.current?.addLabel(b.id, el, b.id === 'chick' ? 5 : b.id === 'hat' ? 9 : 6.5)}
+            className={'ilabel' + (open && live ? ' open' : '') + (live && (!open || hd < 7) ? ' pulse' : '')} onClick={() => openWorld(b.id)}>
             {L(b.name)}
-            <small>{open ? (q?.done ? <>{'★'.repeat(q.stars)} {t('playAgain')}</> : <><Icon n="play" /> {t('playQuest')}</>) : <><Icon n="lock" /> {b.playable ? t('scanBook') : isNext ? t('nextBook') : t('getBook')}</>}</small>
+            <small>{b.locked ? <><Icon n="lock" /> {t('worldLocked')}</>
+              : open && live ? (hd >= 7 ? <><Art n="hat" size={14} /> {t('masterShort')}</> : <><Icon n="play" /> {t('dayOf', { n: hd + 1 })}</>)
+              : <><Icon n="lock" /> {live ? t('scanBook') : t('getBook')}</>}</small>
           </button>;
         })}
-        {world.current && <button ref={el => world.current?.addLabel('home', el, 6.2)} className="ilabel home" onClick={() => !busy() && setMode({ type: 'space' })}>{t('myspace')}<small>🎵 🎬 🐦</small></button>}
+        {world.current && <button ref={el => world.current?.addLabel('home', el, 6.2)} className="ilabel home" onClick={() => !busy() && setMode({ type: 'space' })}>{t('myspace')}<small><Art n="music" size={14} /><Art n="film" size={14} /><Art n="ibis" size={14} /></small></button>}
       </div>
 
-      {!cineUI && mode.type !== 'cine' && <header className="topbar">
+      {!cineUI && mode.type !== 'cine' && mode.type !== 'ending' && <header className="topbar">
         <span className="brand"><img src="/thoth-logo.jpg" alt="Thoth" /></span>
         <button className="chip kid-chip" onClick={() => !busy() && nav('/kids')} title={t('switchKid')}><Face a={child.avatar} size={28} /><span>{child.name}</span></button>
         <span className="chip gold" title={t('stars')}><Icon n="star" /> {st.stars || 0}</span>
@@ -180,23 +172,25 @@ function Game({ child }) {
           <p className="desc" style={{ flex: 1 }}>{L(focus.desc)}</p>
         </div>
         <div className="row"><span className="tag v">{t('valueL')}: {L(focus.value)}</span><span className="tag s">{t('skillL')}: {L(focus.skill)}</span>{st.quest?.[focus.id]?.done && <Stars n={st.quest[focus.id].stars} />}</div>
-        {!st.unlocked.includes(focus.id) && <p className="small muted">{focus.playable ? t('unlockHint') : t('comingSoon')}</p>}
+        {focus.locked ? <p className="small muted"><Icon n="lock" /> {t('worldLockedBody')}</p>
+          : !st.unlocked.includes(focus.id) && <p className="small muted">{focus.playable ? t('unlockHint') : t('comingSoon')}</p>}
         <div className="row">
-          {st.unlocked.includes(focus.id)
-            ? (focus.playable ? <button className="btn big" onClick={startQuest}><Icon n="play" />{st.quest?.[focus.id]?.done ? t('playAgain') : t('startQuest')}</button> : <span className="tag">{t('comingSoon')}</span>)
+          {focus.locked ? <span className="tag"><Icon n="lock" /> {t('worldLocked')}</span>
+            : st.unlocked.includes(focus.id)
+            ? (focus.playable ? <button className="btn big" onClick={() => startQuest(focus.id)}><Icon n="play" />{st.quest?.[focus.id]?.done?.length ? t('continueWeek') : t('startQuest')}</button> : <span className="tag">{t('comingSoon')}</span>)
             : focus.playable ? <button className="btn big" onClick={() => setModal({ scan: focus.id })}><Icon n="qr" />{t('scanBook')}</button>
               : <button className="btn big" onClick={() => focus.shopUrl ? window.open(focus.shopUrl, '_blank', 'noopener') : toast(t('shopSoon'))}><Icon n="book" />{t('getBook')}</button>}
-          <button className="btn ghost" onClick={() => teaser(focus.id)}><Icon n="film" />{st.unlocked.includes(focus.id) ? t('watchIntro') : t('watchTeaser')}</button>
+          {!focus.locked && <button className="btn ghost" onClick={() => teaser(focus.id)}><Icon n="film" />{st.unlocked.includes(focus.id) ? t('watchIntro') : t('watchTeaser')}</button>}
         </div>
       </div></Sheet>}
 
       {mode.type === 'space' && <Space tab={mode.tab} state={st} child={child} books={books} lastReading={lastReading} onClose={() => { stopSong(); setMode({ type: 'map' }); }}
         onVideo={(k, id) => k === 'teaser' ? teaser(id) : replayEnding()} />}
 
-      {mode.type === 'quest' && world.current && <Quest ctx={{
-        world: world.current, book: books.find(b => b.id === 'pearl'), child, guide, cine,
-        onComplete: finishQuest, onAbort: exitQuest, registerAbort: fn => { abortRef.current = fn; },
+      {mode.type === 'quest' && <HatQuest ctx={{
+        child, state: st, guide, onSaved: persist, onExit: exitQuest, registerAbort: fn => { abortRef.current = fn; },
       }} />}
+      {mode.type === 'ending' && <EndingStory onDone={() => setMode({ type: 'space', tab: 'videos' })} />}
 
       {cineUI && <div className="cine">
         <div className="bar t" /><div className="bar b" />
@@ -210,7 +204,7 @@ function Game({ child }) {
       {modal === 'gate' && <ParentGate onClose={() => setModal(null)} onOpen={() => nav('/parent')} />}
       {modal === 'leave' && <Modal onClose={() => setModal(null)}><div className="stack">
         <h2>{t('leaveTitle')}</h2><p className="muted">{t('leaveBody')}</p>
-        <div className="row"><button className="btn" onClick={() => setModal(null)}>{t('stay')}</button><button className="btn ghost" onClick={() => exitQuest(false)}>{t('leave')}</button></div>
+        <div className="row"><button className="btn" onClick={() => setModal(null)}>{t('stay')}</button><button className="btn ghost" onClick={() => exitQuest()}>{t('leave')}</button></div>
       </div></Modal>}
       {mode.type === 'map' && !bubble && <div style={{ position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom,0px) + 10px)', insetInlineStart: 'var(--gl)', zIndex: 5, background: 'rgba(255,255,255,.85)', borderRadius: 14, padding: '4px 10px' }}><ZrythMark small /></div>}
       <FxLayer />
@@ -233,7 +227,7 @@ function ScanModal({ book, onClose, onRedeem }) {
     </ScanFrame>
     <p className="small muted">{t('scanHelp')}</p>
     <button className="btn ghost" onClick={() => setCam(c => !c)}><Icon n="camera" />{t('useCamera')}</button>
-    <div className="field"><label htmlFor="code">{t('codeLabel')}</label><input id="code" type="text" dir="ltr" autoComplete="off" value={code} placeholder="PEARL-XXXXXX" onChange={e => setCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && go()} /></div>
+    <div className="field"><label htmlFor="code">{t('codeLabel')}</label><input id="code" type="text" dir="ltr" autoComplete="off" value={code} placeholder={book.id.toUpperCase() + '-XXXXXX'} onChange={e => setCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && go()} /></div>
     <p className="err" role="alert">{err}</p>
     <div className="row"><button className="btn" onClick={() => go()} disabled={!code.trim()}>{t('unlock')}</button><button className="btn sea" onClick={() => go(book.id.toUpperCase() + '-DEMO')}><Icon n="book" />{t('useDemo')}</button></div>
   </div></Modal>;

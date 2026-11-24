@@ -46,7 +46,7 @@ export function Modal({ children, onClose, wide }) {
 export const Sheet = ({ children, size = '' }) => <section className={'sheet ' + size}>{children}</section>;
 
 export function Stars({ n, max = 3 }) {
-  return <span className="stars" aria-label={`${n}/${max}`}>{Array.from({ length: max }, (_, i) => <span key={i} className={i < n ? '' : 'off'}>★</span>)}</span>;
+  return <span className="stars" aria-label={`${n}/${max}`}>{Array.from({ length: max }, (_, i) => <span key={i} className={i < n ? '' : 'off'}><Icon n="star" /></span>)}</span>;
 }
 export const CloseX = ({ onClick, label = 'Close' }) => <button className="x" aria-label={label} onClick={onClick}><Icon n="x" /></button>;
 
