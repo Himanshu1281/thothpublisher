@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n';
-import { alignWords, canListen, listen, say, wordSim, hush } from '../lib/speech';
+import { alignWords, canListen, listen, say, wordSim, hush, prefetchSpeech } from '../lib/speech';
 import { ac, sfx } from '../lib/audio';
 import { Icon, Stars, Wave } from '../components/ui';
 import { READ, clean } from './content';
@@ -26,7 +26,11 @@ export default function ReadAloud({ band, bandCfg, name, bookImg, onDone, guide 
   const [tries, setTries] = useState({});
   const t0 = useRef(0), dur = useRef(0), rec = useRef(null);
 
-  useEffect(() => { if (little) { ac(); setTimeout(() => say(R.words, 'ar'), 400); } return () => { rec.current?.stop(); hush(); }; }, []); // eslint-disable-line
+  useEffect(() => {
+    prefetchSpeech(R.words, 'ar'); words.forEach(w => prefetchSpeech(clean(w), 'ar'));
+    if (little) { ac(); setTimeout(() => say(R.words, 'ar'), 400); }
+    return () => { rec.current?.stop(); hush(); };
+  }, []); // eslint-disable-line
 
   const sumScore = tr => alignWords(words.map(clean), tr).reduce((a, b) => a + b, 0);
   const start = () => {

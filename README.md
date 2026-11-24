@@ -40,3 +40,8 @@ Notes: the free Render service sleeps after 15 min idle (first visit then takes 
 2. If that URL differs, edit the `/api/*` redirect in `netlify.toml` and push.
 3. https://app.netlify.com → Add new site → Import from GitHub → pick the repo. Netlify reads `netlify.toml` (build `npm run build`, publish `dist`). Deploy.
 4. Use the Netlify URL for the app. The Render URL keeps working too, but you only need to share the Netlify one.
+
+## Arabic narration (Azure AI Speech, free tier)
+Devices without an Arabic voice stay silent with the browser's built-in speech, so the server can speak instead.
+Set on Render → thoth-story-worlds → Environment: `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` (e.g. `centralindia`).
+Voices: `ar-SA-ZariyahNeural` (Arabic), `en-US-AnaNeural` (English fallback). Audio is cached in memory; free tier = 500k characters/month.

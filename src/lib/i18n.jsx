@@ -79,6 +79,7 @@ const EN = {
   generate: 'Generate codes', howMany: 'How many', used: 'Used', unused: 'Unused', download: 'Download CSV', saved: 'Saved', families: 'Families', explorers: 'Explorers', runsL: 'Quest runs', completions: 'Completions',
   avgDives: 'Avg. dives to finish', minutesTotal: 'Total minutes played', runsDaily: 'Quest runs per day (30 days)', byBook: 'By book', unlocks: 'Unlocks', redeemed: 'Redeemed', ageMix: 'Explorers by age',
   bookRef: 'Book reference', seeBook: 'Look at this page in your book',
+  noArVoice: 'This device has no Arabic voice. In Windows: Settings → Time & language → Speech → Add voices → Arabic.', noEnVoice: 'This device has no English voice installed.',
   poweredBy: 'Powered by', language: 'العربية',
 };
 
@@ -157,6 +158,7 @@ const AR = {
   generate: 'إنشاء رموز', howMany: 'العدد', used: 'مستخدم', unused: 'غير مستخدم', download: 'تنزيل CSV', saved: 'تم الحفظ', families: 'العائلات', explorers: 'المستكشفون', runsL: 'محاولات المهمات', completions: 'المكتملة',
   avgDives: 'متوسط الغوصات للإنهاء', minutesTotal: 'مجموع دقائق اللعب', runsDaily: 'المحاولات يومياً (٣٠ يوماً)', byBook: 'حسب الكتاب', unlocks: 'مرات الفتح', redeemed: 'مستخدمة', ageMix: 'المستكشفون حسب العمر',
   bookRef: 'مرجع الكتاب', seeBook: 'انظر إلى هذه الصفحة في كتابك',
+  noArVoice: 'هذا الجهاز لا يحتوي على صوت عربي. في ويندوز: الإعدادات ← الوقت واللغة ← الكلام ← إضافة أصوات ← العربية.', noEnVoice: 'هذا الجهاز لا يحتوي على صوت إنجليزي.',
   poweredBy: 'بدعم من', language: 'English',
 };
 

@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { db, save, id, initDb } from './db.js';
 import { seed } from './seed.js';
+import { ttsEnabled, synth, allowed } from './tts.js';
 
 // API_PORT wins so a dev tool that sets PORT for Vite doesn't move the API.
 const PORT = process.env.API_PORT || (process.env.NODE_ENV === 'production' ? process.env.PORT : 0) || 4000;
@@ -62,6 +63,20 @@ app.post('/api/auth/login', (req, res) => {
   res.json({ token: sign(u), user: pub(u) });
 });
 app.get('/api/me', auth(), (req, res) => res.json({ user: pub(req.user) }));
+
+/* ---------- text-to-speech (Azure) ---------- */
+app.get('/api/tts/status', (_req, res) => res.json({ enabled: ttsEnabled }));
+app.get('/api/tts', auth(), async (req, res) => {
+  if (!ttsEnabled) return res.status(503).json({ error: 'tts_disabled' });
+  const text = String(req.query.text || '').trim().slice(0, 400);
+  const lang = req.query.lang === 'en' ? 'en' : 'ar';
+  if (!text) return res.status(400).json({ error: 'no_text' });
+  if (!allowed(req.user.id)) return res.status(429).json({ error: 'slow_down' });
+  try {
+    const mp3 = await synth(text, lang);
+    res.set({ 'Content-Type': 'audio/mpeg', 'Cache-Control': 'private, max-age=86400' }).send(mp3);
+  } catch (e) { console.error('TTS failed', e.message); res.status(502).json({ error: 'tts_failed' }); }
+});
 
 /* ---------- books (public catalogue) ---------- */
 app.get('/api/books', (_req, res) => res.json(db().books.filter(b => b.published)));

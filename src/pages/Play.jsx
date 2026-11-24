@@ -52,6 +52,13 @@ function Game({ child }) {
   useEffect(() => { if (world.current && st) world.current.setMist(st.unlocked, mode.type === 'quest'); }, [st, mode]);
   useEffect(() => { world.current?.setMode(mode.type === 'quest' ? { type: 'pearl' } : mode.type === 'focus' ? { type: 'focus', id: mode.id } : mode.type === 'space' ? { type: 'focus', id: 'home' } : { type: 'map' }); }, [mode]);
 
+  /* tell the user once when the device can't speak a language, instead of staying silent */
+  useEffect(() => {
+    const warned = new Set();
+    const h = e => { if (warned.has(e.detail)) return; warned.add(e.detail); toast(t(e.detail === 'ar' ? 'noArVoice' : 'noEnVoice')); };
+    addEventListener('thoth-novoice', h); return () => removeEventListener('thoth-novoice', h);
+  }, [t]);
+
   /* play-time tracking */
   useEffect(() => {
     const iv = setInterval(() => { if (document.visibilityState === 'visible') api(`/children/${child.id}/time`, { method: 'POST', body: { sec: 30 } }).catch(() => {}); }, 30000);

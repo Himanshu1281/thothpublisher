@@ -12,8 +12,39 @@ function bestVoice(lang) {
   return list.sort((a, b) => score(b) - score(a))[0] || null;
 }
 export const speechState = { on: true };
-export function say(text, lang = 'en', { rate } = {}) {
-  if (!speechState.on || !text || !('speechSynthesis' in window)) return Promise.resolve();
+/** false only when we know the device has voices but none for this language. */
+export function hasVoice(lang) { loadVoices(); return !voices.length || !!bestVoice(lang); }
+
+/* ---- server voice (Azure neural, same on every device) ---- */
+let serverTTS = null; // null = unknown, true/false once checked
+const ttsReady = fetch('/api/tts/status').then(r => r.json()).then(j => { serverTTS = !!j.enabled; }).catch(() => { serverTTS = false; });
+const clips = new Map(); let audioEl = null;
+const useServer = lang => serverTTS && (lang === 'ar' || !bestVoice(lang));
+async function clipUrl(text, lang) {
+  const k = lang + '|' + text; if (clips.has(k)) return clips.get(k);
+  const p = fetch(`/api/tts?lang=${lang}&text=${encodeURIComponent(text)}`, { headers: { Authorization: 'Bearer ' + (localStorage.getItem('thoth-token') || '') } })
+    .then(r => { if (!r.ok) throw new Error('tts ' + r.status); return r.blob(); })
+    .then(b => URL.createObjectURL(b));
+  clips.set(k, p); p.catch(() => clips.delete(k));
+  return p;
+}
+/** warm the cache so the first tap plays instantly */
+export function prefetchSpeech(text, lang = 'ar') { ttsReady.then(() => { if (useServer(lang) && text) clipUrl(text, lang).catch(() => {}); }); }
+function playServer(text, lang) {
+  return clipUrl(text, lang).then(url => new Promise(res => {
+    hush(); audioEl = new Audio(url); audioEl.onended = res; audioEl.onerror = res; audioEl.play().catch(res);
+  }));
+}
+
+export async function say(text, lang = 'en', { rate } = {}) {
+  if (!speechState.on || !text) return;
+  if (serverTTS === null) await Promise.race([ttsReady, new Promise(r => setTimeout(r, 1500))]);
+  if (useServer(lang)) { try { await playServer(text, lang); return; } catch { /* fall back to the device voice */ } }
+  return sayDevice(text, lang, { rate });
+}
+function sayDevice(text, lang, { rate } = {}) {
+  if (!('speechSynthesis' in window)) return Promise.resolve();
+  if (!hasVoice(lang)) { window.dispatchEvent(new CustomEvent('thoth-novoice', { detail: lang })); return Promise.resolve(); }
   return new Promise(res => {
     try {
       speechSynthesis.cancel();
@@ -26,7 +57,10 @@ export function say(text, lang = 'en', { rate } = {}) {
     } catch { res(); }
   });
 }
-export function hush() { try { window.speechSynthesis?.cancel(); } catch { /* */ } }
+export function hush() {
+  try { if (audioEl) { audioEl.pause(); audioEl = null; } } catch { /* */ }
+  try { window.speechSynthesis?.cancel(); } catch { /* */ }
+}
 
 /* ---------------- Arabic normalisation + fuzzy match ---------------- */
 const TASHKEEL = /[ؐ-ًؚ-ٰٟۖ-ۭـ]/g;
