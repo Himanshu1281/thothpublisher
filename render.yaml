@@ -1,0 +1,22 @@
+# Render Blueprint — free web service. Render > New > Blueprint > pick this repo.
+services:
+  - type: web
+    name: thoth-story-worlds
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/books
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI        # free MongoDB Atlas connection string (keeps data across restarts)
+        sync: false
+      - key: ADMIN_EMAIL        # publisher admin login, created on first start
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
