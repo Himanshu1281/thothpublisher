@@ -1,0 +1,21 @@
+# Netlify hosts the React frontend; the API runs on Render (see render.yaml).
+# Netlify forwards /api/* to Render, so the browser sees one site (no CORS, same login).
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# If Render gives your API a different URL, change it here.
+[[redirects]]
+  from = "/api/*"
+  to = "https://thoth-story-worlds.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+# Single-page app: every other path loads index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

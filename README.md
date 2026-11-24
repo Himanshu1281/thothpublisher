@@ -34,3 +34,9 @@ Production: `npm run build && NODE_ENV=production PORT=8080 JWT_SECRET=... npm s
 4. Open the `https://thoth-story-worlds.onrender.com` URL Render gives you. Publisher login is at `/publisher`.
 
 Notes: the free Render service sleeps after 15 min idle (first visit then takes ~30–50 s). Without `MONGODB_URI` it still runs, but all data resets on every restart/deploy. In production the `@thoth.test` test accounts are not created. HTTPS is provided by Render, which the microphone and camera require.
+
+### Option: frontend on Netlify (free), API on Render
+1. Deploy the API on Render as above (steps 1–3). Note its URL, e.g. `https://thoth-story-worlds.onrender.com`.
+2. If that URL differs, edit the `/api/*` redirect in `netlify.toml` and push.
+3. https://app.netlify.com → Add new site → Import from GitHub → pick the repo. Netlify reads `netlify.toml` (build `npm run build`, publish `dist`). Deploy.
+4. Use the Netlify URL for the app. The Render URL keeps working too, but you only need to share the Netlify one.
