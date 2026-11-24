@@ -22,3 +22,15 @@ Production: `npm run build && NODE_ENV=production PORT=8080 JWT_SECRET=... npm s
 - `src/lib/i18n.jsx` – all English/Arabic strings
 - `public/zryth-logo.png` – official Zryth logo (from zryth.com)
 - `legacy/original-game.html` – the original single-file game
+
+## Free deployment (Render + MongoDB Atlas)
+1. **Database (free, keeps data):** create a free M0 cluster at https://cloud.mongodb.com → Database Access: add a user → Network Access: allow `0.0.0.0/0` → Connect → Drivers → copy the `mongodb+srv://…` string.
+2. **Code on GitHub:** create an empty repo at https://github.com/new, then in this folder:
+   `git remote add origin https://github.com/<you>/thoth.git` and `git push -u origin main`
+3. **Host (free):** https://dashboard.render.com → New → Blueprint → pick the repo. Render reads `render.yaml` and asks for:
+   - `MONGODB_URI` – the Atlas string from step 1
+   - `ADMIN_EMAIL` / `ADMIN_PASSWORD` – your publisher login (created on first start)
+   `JWT_SECRET` is generated automatically.
+4. Open the `https://thoth-story-worlds.onrender.com` URL Render gives you. Publisher login is at `/publisher`.
+
+Notes: the free Render service sleeps after 15 min idle (first visit then takes ~30–50 s). Without `MONGODB_URI` it still runs, but all data resets on every restart/deploy. In production the `@thoth.test` test accounts are not created. HTTPS is provided by Render, which the microphone and camera require.
