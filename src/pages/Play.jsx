@@ -51,7 +51,7 @@ function Game({ child }) {
     setTick(x => x + 1);
     return () => { w.dispose(); world.current = null; };
   }, [books]);
-  useEffect(() => { if (world.current && st) world.current.setMist(st.unlocked, mode.type === 'quest'); }, [st, mode]);
+  useEffect(() => { if (world.current && st) world.current.setMist(st.unlocked.filter(id => !books.find(x => x.id === id)?.locked), mode.type === 'quest'); }, [st, mode, books]);
   useEffect(() => {
     const w = world.current; if (!w) return;
     // the 2.5D Hat Town scenes cover the screen: stop drawing the 3D map underneath
